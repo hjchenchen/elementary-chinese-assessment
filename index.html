@@ -554,7 +554,17 @@ function initAISelect() {
   sel.innerHTML = QUESTIONS.map(q=>`<option value="${q.id}">第 ${q.id} 題 — ${dimById(q.dim).name} (通過率 ${q.passRate}%)</option>`).join('');
 }
 
+function checkApiKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if(!key) {
+    document.getElementById('aiChat').innerHTML = '<div style="color:var(--danger);padding:12px;background:#fff5f5;border-radius:8px;"><strong>請先輸入 Groq API Key</strong><br>在左側「AI 設定」區塊輸入您的 API 金鑰後再嘗試。</div>';
+    return null;
+  }
+  return key;
+}
+
 function simulateMisconception() {
+  if(!checkApiKey()) return;
   const qid = parseInt(document.getElementById('aiQuestionSelect').value);
   const q = QUESTIONS.find(x=>x.id===qid);
   if(!q) return;
@@ -574,6 +584,7 @@ function simulateMisconception() {
 }
 
 function generateSimilarQuestion() {
+  if(!checkApiKey()) return;
   const qid = parseInt(document.getElementById('aiQuestionSelect').value);
   const q = QUESTIONS.find(x=>x.id===qid);
   if(!q) return;
