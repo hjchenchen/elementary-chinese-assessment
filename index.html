@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>115年度國小五年級國語文學力檢測分析儀表板</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #fdfaf6; --card: #fff; --border: #e8e0d5;
+  --primary: #4b3621; --accent: #8b6914; --warm: #c49a2b;
+  --danger: #c0392b; --warning: #e67e22; --ok: #27ae60;
+  --text: #212121; --text2: #6b5e52;
+  --grade-a: #2e7d32; --grade-b: #f9a825; --grade-c: #c62828;
+  --dim-urgent: #e74c3c; --dim-practice: #f39c12; --dim-good: #27ae60;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Source Sans Pro','Noto Sans TC',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+header { background:var(--primary); color:#fff; padding:20px 32px; }
+header h1 { font-size:1.5rem; font-weight:700; }
+header .subtitle { font-size:0.9rem; opacity:0.8; margin-top:4px; }
+
+nav.tabs { display:flex; gap:2px; background:var(--border); padding:0 32px; }
+nav.tabs button { padding:12px 28px; border:none; background:#fff; cursor:pointer; font-size:0.95rem; font-weight:600; color:var(--text2); transition:all 0.2s; border-radius:8px 8px 0 0; margin-top:4px; }
+nav.tabs button:hover { color:var(--primary); }
+nav.tabs button.active { color:var(--primary); background:var(--bg); border-bottom:3px solid var(--accent); }
+
+.container { max-width:1280px; margin:0 auto; padding:24px 32px; }
+section { display:none; }
+section.active { display:block; }
+
+h2 { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--primary); margin-bottom:16px; }
+h3 { font-size:1.15rem; color:var(--primary); margin-bottom:12px; }
+.card { background:var(--card); border-radius:10px; padding:20px 24px; box-shadow:var(--shadow); margin-bottom:20px; }
+
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.grid-2-1 { display:grid; grid-template-columns:2fr 1fr; gap:20px; }
+@media (max-width:768px) { .grid-2, .grid-3, .grid-2-1 { grid-template-columns:1fr; } }
+
+.stat-row { display:flex; gap:24px; margin-bottom:16px; }
+.stat-card { flex:1; text-align:center; padding:16px; border-radius:8px; color:#fff; }
+.stat-card .stat-num { font-size:2rem; font-weight:700; }
+.stat-card .stat-label { font-size:0.85rem; opacity:0.9; }
+.stat-card.a { background:var(--grade-a); }
+.stat-card.b { background:var(--grade-b); color:var(--text); }
+.stat-card.c { background:var(--grade-c); }
+
+.chart-wrap { position:relative; height:280px; }
+.chart-wrap-sm { height:240px; }
+.chart-wrap-lg { height:360px; }
+
+table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+th,td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+th { background:#f5f0e8; font-weight:700; color:var(--primary); }
+tr:hover { background:#fdf8f0; }
+
+.tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:0.8rem; font-weight:600; color:#fff; }
+.tag-urgent { background:var(--dim-urgent); }
+.tag-practice { background:var(--dim-practice); }
+.tag-good { background:var(--dim-good); }
+.tag-a { background:var(--grade-a); }
+.tag-b { background:var(--grade-b); color:var(--text); }
+.tag-c { background:var(--grade-c); }
+
+.btn { display:inline-block; padding:8px 20px; border-radius:6px; border:none; cursor:pointer; font-size:0.9rem; font-weight:600; transition:all 0.2s; }
+.btn-primary { background:var(--accent); color:#fff; }
+.btn-outline { background:none; border:2px solid var(--accent); color:var(--accent); }
+.btn-sm { padding:4px 12px; font-size:0.8rem; }
+
+.filter-bar { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+.filter-bar select, .filter-bar input { padding:8px 12px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem; background:#fff; }
+.filter-bar label { font-weight:600; color:var(--text2); font-size:0.9rem; }
+
+.mode-switch { display:flex; gap:0; margin-bottom:16px; border-radius:8px; overflow:hidden; border:2px solid var(--border); }
+.mode-switch button { flex:1; padding:10px 20px; border:none; background:#fff; cursor:pointer; font-weight:600; font-size:0.9rem; }
+.mode-switch button.active { background:var(--accent); color:#fff; }
+
+.kidmap-row { display:flex; gap:20px; }
+.kidmap-bar { flex:1; }
+.kidmap-item { margin-bottom:12px; }
+.kidmap-item .label { display:flex; justify-content:space-between; margin-bottom:4px; font-weight:600; font-size:0.9rem; }
+.kidmap-item .bar-bg { height:24px; background:#e0e0e0; border-radius:12px; overflow:hidden; }
+.kidmap-item .bar-fill { height:100%; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.8rem; font-weight:600; }
+.kidmap-item .bar-fill.misconception { background:var(--danger); }
+.kidmap-item .bar-fill.careless { background:var(--warning); }
+
+.option-card { padding:12px 16px; border-radius:8px; margin-bottom:8px; border-left:4px solid #ddd; }
+.option-card.correct { border-left-color:var(--ok); background:#f0faf0; }
+.option-card.wrong { border-left-color:var(--danger); bg:#fff5f5; }
+.option-card .opt-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+.option-card .opt-label { font-weight:700; }
+.option-card .opt-rate { font-size:0.85rem; color:var(--text2); }
+
+.strategy-box { padding:16px; border-radius:8px; margin-top:12px; }
+.strategy-box.c-group { background:#fff5f5; border:1px solid #fcc; }
+.strategy-box.a-group { background:#f0f8f0; border:1px solid #cfc; }
+.strategy-box h4 { margin-bottom:8px; }
+
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; border-radius:12px; max-width:800px; width:90%; max-height:85vh; overflow-y:auto; padding:32px; position:relative; }
+.modal .close { position:absolute; top:12px; right:16px; font-size:1.5rem; background:none; border:none; cursor:pointer; color:var(--text2); }
+
+.ai-chat { border:1px solid var(--border); border-radius:8px; padding:16px; min-height:200px; max-height:400px; overflow-y:auto; margin-bottom:12px; background:#fafaf8; }
+.ai-input-row { display:flex; gap:8px; }
+.ai-input-row textarea { flex:1; padding:10px; border:1px solid var(--border); border-radius:6px; font-size:0.9rem; resize:vertical; min-height:60px; font-family:inherit; }
+.ai-buttons { display:flex; gap:8px; margin-bottom:12px; }
+
+.question-row { cursor:pointer; transition:bg 0.2s; }
+.question-row:hover { background:#fdf3e0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>115年度國小五年級國語文學力檢測分析儀表板</h1>
+  <div class="subtitle">評量架構 × 試題診斷 × AI 助教 — 數據驅動的國語文教學決策工具</div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="overview">全校學力概況</button>
+  <button data-tab="dimensions">向度強弱分析</button>
+  <button data-tab="questions">單題診斷模式</button>
+  <button data-tab="ai">AI 助教</button>
+</nav>
+
+<div class="container">
+  <!-- ====== 全校學力概況 ====== -->
+  <section id="overview" class="active">
+    <h2>全校學力概況儀表板</h2>
+    <p style="color:var(--text2);margin-bottom:16px;">試題範圍：115年縣市學生學習能力檢測 — 國小五年級國語文（共30題）</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>(A) 學生能力等級分佈</h3>
+        <div class="stat-row">
+          <div class="stat-card a"><div class="stat-num" id="rateA">22%</div><div class="stat-label">精熟 (A)</div></div>
+          <div class="stat-card b"><div class="stat-num" id="rateB">56%</div><div class="stat-label">基礎 (B)</div></div>
+          <div class="stat-card c"><div class="stat-num" id="rateC">22%</div><div class="stat-label">待加強 (C)</div></div>
+        </div>
+        <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+        <p style="margin-top:8px;color:var(--text2);font-size:0.9rem;">全校呈常態偏正向分佈。基礎(B)等級佔比最高(56%)，為教學主力群體。待加強(C)與精熟(A)各約五分之一，呈現典型鐘型曲線。</p>
+      </div>
+
+      <div class="card">
+        <h3>(B) 全校學習體質診斷 (KIDMAP)</h3>
+        <div class="kidmap-row">
+          <div class="kidmap-bar">
+            <div class="kidmap-item">
+              <div class="label"><span>迷思概念（真不會）</span><span>62%</span></div>
+              <div class="bar-bg"><div class="bar-fill misconception" style="width:62%">62%</div></div>
+            </div>
+            <div class="kidmap-item">
+              <div class="label"><span>合理錯（粗心）</span><span>38%</span></div>
+              <div class="bar-bg"><div class="bar-fill careless" style="width:38%">38%</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <p style="color:var(--text2);font-size:0.85rem;"><strong>迷思概念 62%：</strong>在待加強與基礎群體的錯誤中，有超過六成是選擇了具吸引力的誘答，而非隨機猜測。顯示學生普遍存在「依賴關鍵字解題」與「背景知識干擾」的閱讀習慣。</p>
+          <p style="color:var(--text2);font-size:0.85rem;margin-top:6px;"><strong>合理錯 38%：</strong>建議減少題海戰術，增加每題的檢討深度，聚焦迷思概念的釐清而非反覆練習。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>(C) 全校評量目標強弱總覽（10大向度完整檢視）</h3>
+      <div class="chart-wrap-lg"><canvas id="dimensionBarChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ====== 向度強弱分析 ====== -->
+  <section id="dimensions">
+    <h2>評量向度強弱分析</h2>
+    <p style="color:var(--text2);margin-bottom:16px;">下表呈現10大評量向度的平均通過率、相關題數與診斷等級。點擊任一列可查看該向度的詳細試題分佈。</p>
+    <div class="card">
+      <table id="dimensionTable">
+        <thead><tr><th>評量向度</th><th>題數</th><th>平均通過率</th><th>診斷等級</th><th>對應題號</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== 單題診斷模式 ====== -->
+  <section id="questions">
+    <h2>單題診斷模式</h2>
+    <div class="mode-switch">
+      <button class="active" data-mode="all">全部題目</button>
+      <button data-mode="support">扶弱（減C）</button>
+      <button data-mode="advance">拔尖（增A）</button>
+    </div>
+    <div class="filter-bar">
+      <label>向度篩選：</label>
+      <select id="dimFilter"><option value="all">全部向度</option></select>
+      <label>排序：</label>
+      <select id="sortBy">
+        <option value="passRate">通過率（低→高）</option>
+        <option value="passRateDesc">通過率（高→低）</option>
+        <option value="discrimination">鑑別度（高→低）</option>
+        <option value="cGroupGap">C群落差（大→小）</option>
+        <option value="abGap">AB落差（大→小）</option>
+      </select>
+    </div>
+    <div class="card">
+      <table id="questionTable">
+        <thead><tr><th>#</th><th>題型</th><th>評量向度</th><th>通過率</th><th>鑑別度</th><th>A群</th><th>B群</th><th>C群</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== AI 助教 ====== -->
+  <section id="ai">
+    <h2>AI 助教</h2>
+    <p style="color:var(--text2);margin-bottom:16px;">AI 助教可模擬學生的思考路徑，並根據選定題目生成延伸類題。使用前請先確保 API 金鑰已設定。</p>
+    <div class="grid-2">
+      <div class="card">
+        <h3>AI 設定</h3>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-weight:600;margin-bottom:4px;">系統提示詞（角色設定）</label>
+          <textarea id="aiSystemPrompt" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;min-height:120px;font-family:inherit;">你是一位熟悉台灣國小國語文教學與評量的資深教師，也熟悉十二年國教課綱與縣市學力檢測的命題邏輯。請一律使用繁體中文（台灣用語）作答，語氣溫和、鼓勵，適合國小五年級學生的理解程度。</textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-weight:600;margin-bottom:4px;">API 金鑰（Groq API Key）</label>
+          <input type="password" id="apiKey" placeholder="gsk_..." style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;">
+        </div>
+      </div>
+      <div class="card">
+        <h3>AI 互動</h3>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-weight:600;margin-bottom:4px;">選擇要分析的題目</label>
+          <select id="aiQuestionSelect" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:0.9rem;"></select>
+        </div>
+        <div class="ai-buttons">
+          <button class="btn btn-primary" onclick="simulateMisconception()">學生迷思模擬</button>
+          <button class="btn btn-outline" onclick="generateSimilarQuestion()">延伸類題生成</button>
+        </div>
+        <div class="ai-chat" id="aiChat"><em style="color:var(--text2);">AI 助教尚未回覆。請選擇題目後點擊上方按鈕。</em></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ====== 單題詳細 Modal ====== -->
+<div class="modal-overlay" id="questionModal">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============== 資料層 ==============
+
+const DIMENSIONS = [
+  { id:'form_sound', name:'形音知識', desc:'能辨認字形(形近字、同音字)、字音(形近字音、多音字音)', category:'知識' },
+  { id:'word_know', name:'字詞知識', desc:'能直接辨認詞語(含四字詞、成語)涵義', category:'知識' },
+  { id:'grammar', name:'語法知識', desc:'能辨認語法(標點、詞類、詞彙結構、句型、病句等)', category:'知識' },
+  { id:'rhetoric', name:'修辭知識', desc:'能辨認修辭', category:'知識' },
+  { id:'structure', name:'章法知識', desc:'能辨認文章組織方式', category:'知識' },
+  { id:'genre', name:'文體知識', desc:'能辨認文本體裁', category:'知識' },
+  { id:'word_comp', name:'字詞理解', desc:'能運用上下文理解字詞涵義、推論指代詞', category:'理解' },
+  { id:'sent_comp', name:'句子理解', desc:'能理解、推論語句涵義', category:'理解' },
+  { id:'para_comp', name:'段落理解', desc:'能推論段落內容、掌握主旨', category:'理解' },
+  { id:'passage_comp', name:'篇章理解', desc:'能直接理解篇章訊息、推論理解、詮釋整合主旨', category:'理解' }
+];
+
+const QUESTIONS = [
+  { id:1, part:1, dim:'form_sound', answer:'B', passage:'', question:'下列哪一個選項前後「」中的字讀音相同？(憎/僧、俏/悄、即/既、甜/恬)', passRate:78, disc:0.38, aRate:94, bRate:82, cRate:45 },
+  { id:2, part:1, dim:'form_sound', answer:'A', passage:'', question:'填入正確的字（啟程／豈料）', passRate:72, disc:0.42, aRate:92, bRate:74, cRate:38 },
+  { id:3, part:1, dim:'form_sound', answer:'B', passage:'', question:'下列哪一個選項「」對應的國字完全正確？', passRate:82, disc:0.36, aRate:96, bRate:85, cRate:52 },
+  { id:4, part:1, dim:'word_know', answer:'D', passage:'', question:'哪一個選項和「安分守己」的意思最接近？', passRate:68, disc:0.45, aRate:90, bRate:70, cRate:32 },
+  { id:5, part:1, dim:'word_know', answer:'C', passage:'', question:'哪一個詞語用來形容人「目光敏銳，能看到極細微之處」？', passRate:74, disc:0.40, aRate:91, bRate:76, cRate:40 },
+  { id:6, part:1, dim:'word_know', answer:'A', passage:'', question:'「老」的用法與「阿姨」的「阿」一樣，只是詞頭？', passRate:62, disc:0.48, aRate:88, bRate:62, cRate:28 },
+  { id:7, part:1, dim:'grammar', answer:'C', passage:'', question:'「西遊記」缺少哪一種標點符號？（書名號）', passRate:70, disc:0.35, aRate:88, bRate:72, cRate:42 },
+  { id:8, part:1, dim:'rhetoric', answer:'B', passage:'', question:'作者運用了哪些感官的摹寫法？', passRate:66, disc:0.44, aRate:90, bRate:66, cRate:34 },
+  { id:9, part:1, dim:'grammar', answer:'A', passage:'', question:'哪一個句子沒有多餘的詞語？', passRate:58, disc:0.46, aRate:85, bRate:58, cRate:25 },
+  { id:10, part:1, dim:'grammar', answer:'D', passage:'', question:'哪一個選項不是判斷句？', passRate:64, disc:0.42, aRate:87, bRate:64, cRate:32 },
+  { id:11, part:1, dim:'genre', answer:'C', passage:'', question:'上面短文屬於哪一種文體？', passRate:60, disc:0.50, aRate:88, bRate:58, cRate:28 },
+  { id:12, part:1, dim:'rhetoric', answer:'D', passage:'', question:'哪一個選項用了相同的寫作技巧（一邊...一邊...）？', passRate:68, disc:0.38, aRate:88, bRate:70, cRate:36 },
+  { id:13, part:1, dim:'rhetoric', answer:'B', passage:'', question:'廣告詞哪一個沒有運用相同寫作技巧（誇飾）？', passRate:55, disc:0.52, aRate:84, bRate:54, cRate:22 },
+  { id:14, part:1, dim:'structure', answer:'C', passage:'麻芛和大麵羹為臺中市的特色美食...', question:'本文的組織方式？', passRate:52, disc:0.54, aRate:82, bRate:50, cRate:20 },
+
+  { id:15, part:2, dim:'word_comp', answer:'D', passage:'', question:'哪一個「」中詞語前後意思最接近？(稀疏/稀疏)', passRate:76, disc:0.36, aRate:92, bRate:78, cRate:46 },
+  { id:16, part:2, dim:'word_comp', answer:'A', passage:'', question:'文句中的「它」指的是下列何者？', passRate:72, disc:0.40, aRate:90, bRate:74, cRate:38 },
+  { id:17, part:2, dim:'word_comp', answer:'C', passage:'', question:'「打瞌睡」的「打」和哪一個選項意思相同？', passRate:65, disc:0.44, aRate:88, bRate:66, cRate:30 },
+  { id:18, part:2, dim:'sent_comp', answer:'B', passage:'', question:'店家最主要想表達什麼？(抿一下嘴...)', passRate:62, disc:0.46, aRate:86, bRate:62, cRate:28 },
+  { id:19, part:2, dim:'sent_comp', answer:'A', passage:'蕭伯納說：「我有一顆蘋果...」', question:'主要表達的涵義為何？', passRate:58, disc:0.50, aRate:84, bRate:56, cRate:26 },
+  { id:20, part:2, dim:'para_comp', answer:'B', passage:'爐灶邊堆滿了乾燥的木柴...', question:'最符合這段文字的主旨？', passRate:55, disc:0.52, aRate:82, bRate:54, cRate:22 },
+  { id:21, part:2, dim:'word_know', answer:'A', passage:'永州人很會游泳...', question:'哪一個詞語最適合形容游泳高手？（捨本逐末）', passRate:66, disc:0.42, aRate:88, bRate:66, cRate:34 },
+  { id:22, part:2, dim:'passage_comp', answer:'B', passage:'如果你有一顆檸檬...', question:'文章中的「魔法」指的是什麼？', passRate:72, disc:0.38, aRate:90, bRate:74, cRate:40 },
+  { id:23, part:2, dim:'passage_comp', answer:'D', passage:'', question:'最後一段的「檸檬」其實指的是什麼？', passRate:65, disc:0.44, aRate:86, bRate:66, cRate:32 },
+  { id:24, part:2, dim:'passage_comp', answer:'C', passage:'', question:'掌握哪一個自然段就幾乎掌握全文重點？', passRate:58, disc:0.48, aRate:84, bRate:58, cRate:26 },
+  { id:25, part:2, dim:'passage_comp', answer:'B', passage:'窗 — 病房故事...', question:'窗外真正的景象是什麼？', passRate:56, disc:0.50, aRate:82, bRate:56, cRate:24 },
+  { id:26, part:2, dim:'passage_comp', answer:'C', passage:'', question:'求救鈴為什麼會響起？', passRate:50, disc:0.54, aRate:80, bRate:48, cRate:18 },
+  { id:27, part:2, dim:'passage_comp', answer:'C', passage:'', question:'這篇文章帶給我們的主要省思？', passRate:52, disc:0.52, aRate:82, bRate:50, cRate:20 },
+  { id:28, part:2, dim:'passage_comp', answer:'B', passage:'從大自然找靈感 — 仿生科技...', question:'哪個發明讓人們更深入了解動植物特殊能力？', passRate:68, disc:0.40, aRate:88, bRate:70, cRate:36 },
+  { id:29, part:2, dim:'passage_comp', answer:'A', passage:'', question:'最符合「找靈感→改善生活」的順序？', passRate:55, disc:0.46, aRate:82, bRate:54, cRate:24 },
+  { id:30, part:2, dim:'passage_comp', answer:'C', passage:'', question:'這篇文章的主旨？', passRate:60, disc:0.44, aRate:85, bRate:60, cRate:28 }
+];
+
+const PASSAGE_TEXTS = {
+  '如果你有一顆檸檬': '有一天，老師在課堂上丟出了一個有趣的問題：「如果你有一顆檸檬，你會怎麼做？」...老師說：「當生活給你檸檬時，別急著丟棄，而是想辦法把它變成一杯美味的檸檬汁！」接著老師講了鞋業銷售員去非洲的故事，一位看到困難，另一位看到機會。老師說這就是正向思考的力量。最後老師送給同學一段話：「孩子們！當生活給我們檸檬時，請不要只想到酸。如果你願意學學那位滿心歡喜的銷售員，就會有許多美好的事物等著你！」',
+  '窗': '在一家醫院的雙人病房裡，住著兩個病人。靠窗的病人每天可以起身坐一小時，他會為靠門的同伴描述窗外公園的景象——湖、野鴨、天鵝、散步的情侶、網球賽。靠門的病人聽得津津有味。一天，他突然有了嫉妒的念頭：「為什麼偏是他有幸能看到窗外的一切？」這個想法日夜困擾著他。某夜，靠窗的病人突然呼吸困難，只要按床頭的求救鈴就有護理師趕來——但靠門的病人紋風不動。最後靠窗病人被送進加護病房。靠門的病人終於換到靠窗的床位，他吃力地探頭朝窗外望去——什麼都沒有，只有一堵光禿禿的牆。',
+  '從大自然找靈感—仿生科技': '人類從大自然中學習，發明了飛機（參考鳥類飛行）、船（參考魚的流線型）。鸚鵡螺的氣室原理啟發了潛水艇；魔鬼氈的靈感來自帶芒刺的植物種子；壁虎趾頭的剛毛產生電磁引力原理；蓮葉表面的奈米級突起結構啟發了自潔塗料；鯊魚皮的V字形構造減少了游泳阻力。現代仿生科技不只是模仿外觀，而是經由觀察歸納→分析原理→運用原理的科學歷程來實踐。'
+};
+
+const OPTION_ANALYSES = {
+  1: { options: [
+    {letter:'A', text:'「憎」恨／「僧」侶', rate:8, tag:'混淆形近字音', correct:false},
+    {letter:'B', text:'「俏」皮／「悄」悄', rate:78, tag:'正確答案（同音不同調）', correct:true},
+    {letter:'C', text:'「即」使／「既」然', rate:10, tag:'混淆形近字', correct:false},
+    {letter:'D', text:'「甜」蜜／「恬」淡', rate:4, tag:'混淆形近字', correct:false}
+  ]},
+  4: { options: [
+    {letter:'A', text:'見機行事', rate:10, tag:'望文生義', correct:false},
+    {letter:'B', text:'標新立異', rate:8, tag:'語意相反', correct:false},
+    {letter:'C', text:'善解人意', rate:14, tag:'部分語素連結錯誤', correct:false},
+    {letter:'D', text:'循規蹈矩', rate:68, tag:'正確答案', correct:true}
+  ]},
+  11: { options: [
+    {letter:'A', text:'記敘文', rate:12, tag:'看到故事元素就選', correct:false},
+    {letter:'B', text:'抒情文', rate:10, tag:'混淆文體特徵', correct:false},
+    {letter:'C', text:'說明文', rate:60, tag:'正確答案（客觀說明光學遙測儀功能）', correct:true},
+    {letter:'D', text:'議論文', rate:18, tag:'未掌握議論要素', correct:false}
+  ]},
+  13: { options: [
+    {letter:'A', text:'一家烤肉萬家香', rate:14, tag:'誇飾（烤肉的香味傳遍萬家）', correct:false},
+    {letter:'B', text:'沒事多喝水，多喝水沒事', rate:55, tag:'正確答案（回文，非誇飾）', correct:true},
+    {letter:'C', text:'以後也要長得像大樹一樣高', rate:18, tag:'誇飾（人不可能長得像樹）', correct:false},
+    {letter:'D', text:'油到可以煎蛋了', rate:13, tag:'誇飾（臉上的油不可能煎蛋）', correct:false}
+  ]},
+  25: { options: [
+    {letter:'A', text:'活動中的人', rate:14, tag:'受到靠窗病人描述的誤導', correct:false},
+    {letter:'B', text:'光禿禿的牆', rate:56, tag:'正確答案（文末揭露真相）', correct:true},
+    {letter:'C', text:'有趣的比賽', rate:10, tag:'片段記憶', correct:false},
+    {letter:'D', text:'美麗的公園', rate:20, tag:'主要誘答！全程被靠窗病人描述誤導', correct:false}
+  ]}
+};
+
+// ============== 工具函式 ==============
+
+function dimById(id) { return DIMENSIONS.find(d=>d.id===id); }
+function getDimAvgRate(dimId) {
+  const qs = QUESTIONS.filter(q=>q.dim===dimId);
+  if(qs.length===0) return 0;
+  return Math.round(qs.reduce((a,q)=>a+q.passRate,0)/qs.length);
+}
+function getLevel(passRate) {
+  if(passRate>=80) return {label:'維持優勢', cls:'tag-good'};
+  if(passRate>=60) return {label:'加強練習', cls:'tag-practice'};
+  return {label:'急需補救', cls:'tag-urgent'};
+}
+
+// ============== 全校概況圖表 ==============
+
+function initOverview() {
+  const ctx = document.getElementById('donutChart');
+  if(ctx) {
+    new Chart(ctx, {
+      type:'doughnut',
+      data:{
+        labels:['精熟 A (22%)','基礎 B (56%)','待加強 C (22%)'],
+        datasets:[{data:[22,56,22], backgroundColor:['#2e7d32','#f9a825','#c62828'], borderWidth:3, borderColor:'#fff'}]
+      },
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+    });
+  }
+
+  const ctx2 = document.getElementById('dimensionBarChart');
+  if(ctx2) {
+    const dims = DIMENSIONS.map(d=>({name:d.name, rate:getDimAvgRate(d.id)}));
+    const colors = dims.map(d=>d.rate>=80?'#27ae60':d.rate>=60?'#f39c12':'#e74c3c');
+    new Chart(ctx2, {
+      type:'bar',
+      data:{
+        labels:dims.map(d=>d.name),
+        datasets:[{label:'平均通過率 (%)', data:dims.map(d=>d.rate), backgroundColor:colors, borderRadius:6}]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        scales:{x:{max:100, ticks:{callback:v=>v+'%'}}},
+        plugins:{legend:{display:false},
+          annotation:{annotations:{line60:{type:'line',xMin:60,xMax:60,borderColor:'#e67e22',borderWidth:2,borderDash:[6,4],label:{content:'加強線60%',enabled:true}},
+            line80:{type:'line',xMin:80,xMax:80,borderColor:'#27ae60',borderWidth:2,borderDash:[6,4],label:{content:'優勢線80%',enabled:true}}}}}
+      }
+    });
+  }
+}
+
+// ============== 向度分析表格 ==============
+
+function initDimensionTable() {
+  const tbody = document.querySelector('#dimensionTable tbody');
+  tbody.innerHTML = DIMENSIONS.map(d=>{
+    const rate = getDimAvgRate(d.id);
+    const lv = getLevel(rate);
+    const qs = QUESTIONS.filter(q=>q.dim===d.id);
+    const nums = qs.map(q=>q.id).join('、');
+    return `<tr style="cursor:pointer" onclick="filterByDimension('${d.id}')">
+      <td><strong>${d.name}</strong><br><small style="color:var(--text2)">${d.desc}</small></td>
+      <td>${qs.length} 題</td>
+      <td><strong>${rate}%</strong></td>
+      <td><span class="tag ${lv.cls}">${lv.label}</span></td>
+      <td>第 ${nums} 題</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============== 單題診斷 ==============
+
+let currentMode = 'all';
+let currentDimFilter = 'all';
+let currentSort = 'passRate';
+
+function renderQuestionTable() {
+  let qs = [...QUESTIONS];
+  if(currentMode==='support') {
+    qs = qs.filter(q=>q.cRate<60);
+    qs.sort((a,b)=>a.cRate - b.cRate);
+  } else if(currentMode==='advance') {
+    qs = qs.filter(q=>q.bRate<85);
+    qs.sort((a,b)=>(b.aRate-b.bRate) - (a.aRate-a.bRate));
+  }
+  if(currentDimFilter!=='all') qs = qs.filter(q=>q.dim===currentDimFilter);
+  if(currentMode==='all') {
+    if(currentSort==='passRate') qs.sort((a,b)=>a.passRate-b.passRate);
+    else if(currentSort==='passRateDesc') qs.sort((a,b)=>b.passRate-a.passRate);
+    else if(currentSort==='discrimination') qs.sort((a,b)=>b.disc-a.disc);
+    else if(currentSort==='cGroupGap') qs.sort((a,b)=>b.cRate-a.cRate);
+    else if(currentSort==='abGap') qs.sort((a,b)=>(b.aRate-b.bRate)-(a.aRate-a.bRate));
+  }
+
+  const tbody = document.querySelector('#questionTable tbody');
+  tbody.innerHTML = qs.map(q=>{
+    const d = dimById(q.dim);
+    const lv = getLevel(q.passRate);
+    return `<tr class="question-row" onclick="openQuestionDetail(${q.id})">
+      <td><strong>${q.id}</strong></td>
+      <td>第${q.part===1?'一':'二'}部分<br><small>${q.part===1?'語文知識':'閱讀理解'}</small></td>
+      <td><span class="tag" style="font-size:0.75rem;background:${d.category==='知識'?'#5b6abf':'#e88a2a'}">${d.name}</span></td>
+      <td><span class="tag ${lv.cls}">${q.passRate}%</span></td>
+      <td>${q.disc.toFixed(2)}</td>
+      <td><span class="tag tag-a">${q.aRate}%</span></td>
+      <td><span class="tag tag-b">${q.bRate}%</span></td>
+      <td><span class="tag tag-c">${q.cRate}%</span></td>
+      <td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openQuestionDetail(${q.id})">分析</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openQuestionDetail(qid) {
+  const q = QUESTIONS.find(x=>x.id===qid);
+  if(!q) return;
+  const d = dimById(q.dim);
+  const lv = getLevel(q.passRate);
+  const opts = OPTION_ANALYSES[qid];
+
+  let optHtml = '';
+  if(opts) {
+    optHtml = opts.options.map(o=>`
+      <div class="option-card ${o.correct?'correct':'wrong'}">
+        <div class="opt-header"><span class="opt-label">${o.letter}. ${o.text}</span><span class="opt-rate">選擇率 ${o.rate}%</span></div>
+        <div style="font-size:0.85rem;color:var(--text2);">${o.tag}</div>
+      </div>`).join('');
+  } else {
+    optHtml = `<div class="option-card correct"><div class="opt-header"><span class="opt-label">正確答案：${q.answer}</span><span class="opt-rate">通過率 ${q.passRate}%</span></div></div>`;
+  }
+
+  const abGap = q.aRate - q.bRate;
+  const bcGap = q.bRate - q.cRate;
+
+  const cStrategy = getCStrategy(q);
+  const aStrategy = getAStrategy(q);
+
+  document.getElementById('modalContent').innerHTML = `
+    <button class="close" onclick="closeModal()">&times;</button>
+    <h2>第 ${q.id} 題 — ${d.name}</h2>
+    <div style="margin-bottom:12px;">
+      <span class="tag ${lv.cls}">${lv.label}</span>
+      <span class="tag" style="background:${d.category==='知識'?'#5b6abf':'#e88a2a'}">${d.name}</span>
+      <span class="tag" style="background:#666">${q.part===1?'語文知識題':'閱讀理解題'}</span>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <h3>題目</h3>
+      <div class="card" style="background:#f8f5f0;">${q.question}</div>
+      ${q.passage ? `<div class="card" style="background:#f0f4f8;font-size:0.9rem;max-height:200px;overflow-y:auto;"><strong>引文：</strong>${q.passage}</div>` : ''}
+    </div>
+
+    <div class="grid-3" style="margin-bottom:16px;">
+      <div class="card" style="text-align:center;"><div style="font-size:1.8rem;font-weight:700;color:var(--grade-a)">${q.aRate}%</div><div style="font-size:0.8rem;color:var(--text2);">精熟群答對率</div></div>
+      <div class="card" style="text-align:center;"><div style="font-size:1.8rem;font-weight:700;color:var(--grade-b)">${q.bRate}%</div><div style="font-size:0.8rem;color:var(--text2);">基礎群答對率</div></div>
+      <div class="card" style="text-align:center;"><div style="font-size:1.8rem;font-weight:700;color:var(--grade-c)">${q.cRate}%</div><div style="font-size:0.8rem;color:var(--text2);">待加強群答對率</div></div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card" style="text-align:center;"><div style="font-size:1.2rem;font-weight:700;">${q.disc.toFixed(2)}</div><div style="font-size:0.8rem;color:var(--text2);">鑑別度</div></div>
+      <div class="card" style="text-align:center;"><div style="font-size:1.2rem;font-weight:700;color:${abGap>25?'var(--danger)':'var(--text)'}">${abGap}%</div><div style="font-size:0.8rem;color:var(--text2);">A-B 落差</div></div>
+    </div>
+
+    <h3>選項診斷</h3>
+    ${optHtml}
+
+    ${cStrategy ? `<div class="strategy-box c-group">${cStrategy}</div>` : ''}
+    ${aStrategy ? `<div class="strategy-box a-group">${aStrategy}</div>` : ''}
+  `;
+  document.getElementById('questionModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('questionModal').classList.remove('show'); }
+
+function getCStrategy(q) {
+  if(q.passRate>=70) return null;
+  if(q.dim==='form_sound') return `<h4>C群策略：形音配對視覺化</h4><p>數據：C群答對率僅 ${q.cRate}%。策略：【微行動】形音配對卡 — 製作形近字雙面卡（正面字形、反面注音+詞語），讓學生配對後大聲朗讀，強化形音連結。</p>`;
+  if(q.dim==='word_know') return `<h4>C群策略：成語情境化學習</h4><p>數據：C群答對率僅 ${q.cRate}%。策略：【微行動】成語四格漫畫 — 將成語拆解為四個畫面，引導學生用圖像理解成語的比喻義，降低對字面理解的依賴。</p>`;
+  if(q.dim==='grammar') return `<h4>C群策略：句型結構圖解</h4><p>數據：C群答對率僅 ${q.cRate}%。策略：【微行動】句子解析箭頭 — 用不同顏色的箭頭標示主語→謂語→賓語，讓學生視覺化句型結構，避免憑語感猜題。</p>`;
+  if(q.dim==='rhetoric') return `<h4>C群策略：修辭具象化卡片</h4><p>數據：C群答對率僅 ${q.cRate}%。策略：【微行動】修辭感官配對 — 準備不同感官（眼耳鼻舌身）的圖卡，讓學生在閱讀文章時貼上對應感官，強化修辭辨識的具體參照。</p>`;
+  if(q.dim==='passage_comp') return `<h4>C群策略：閱讀分層提問</h4><p>數據：C群答對率僅 ${q.cRate}%。策略：【微行動】三層次閱讀單 — 第一層「找答案」（文章中直接寫的）、第二層「想一想」（需要推論的）、第三層「說說看」（你的看法），逐步建立閱讀信心。</p>`;
+  return `<h4>C群策略：基礎概念重建</h4><p>數據：C群答對率僅 ${q.cRate}%。策略：回歸基本概念，透過具體操作（如字卡、圖卡、填空練習）重建學生的先備知識，再逐步過渡到應用層次。</p>`;
+}
+
+function getAStrategy(q) {
+  const abGap = q.aRate - q.bRate;
+  if(abGap<12) return null;
+  if(q.dim==='structure'||q.dim==='genre') return `<h4>B群增A策略：文體組織對照表</h4><p>數據：AB落差 ${abGap}%。策略：【微行動】文體特徵矩陣 — 製作文體×特徵對照表，讓B群學生在閱讀新文本時勾選特徵，逐步建立「以結構辨文體」的後設認知能力。</p>`;
+  if(q.dim==='passage_comp') return `<h4>B群增A策略：深層推論訓練（Inference Training）</h4><p>數據：AB落差 ${abGap}%。策略：【文本法庭】設定情境：現在你是法官，題目的每個選項都是「被告」→ 舉證責任：請在文章中畫出「直接證據」或「間接線索」→ 排除沒有證據支持的選項。訓練學生的「文本證據優先」思維。</p>`;
+  if(q.dim==='sent_comp') return `<h4>B群增A策略：抽象概念的具象轉譯</h4><p>數據：AB落差 ${abGap}%。策略：【概念翻譯機】活動：請學生把文章中的「抽象概念」用生活中的「具體情境」重新表述。例如蕭伯納的蘋果比喻→請用一個你自己的例子來說明「交流讓彼此成長」。</p>`;
+  return `<h4>B群增A策略：思維深度拓展</h4><p>數據：AB落差 ${abGap}%。策略：B群學生已掌握基本概念，瓶頸在於「深層理解」與「跨文本整合」。建議減少重複練習，增加開放式討論與比較分析任務。</p>`;
+}
+
+function filterByDimension(dimId) {
+  currentDimFilter = dimId;
+  currentMode = 'all';
+  document.querySelectorAll('.mode-switch button').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.mode-switch button[data-mode="all"]').classList.add('active');
+  document.getElementById('dimFilter').value = dimId;
+  renderQuestionTable();
+  switchTab('questions');
+}
+
+// ============== Tab 切換 ==============
+
+function switchTab(tabName) {
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.querySelector(`nav.tabs button[data-tab="${tabName}"]`).classList.add('active');
+  document.getElementById(tabName).classList.add('active');
+}
+
+// ============== AI 助教 ==============
+
+function initAISelect() {
+  const sel = document.getElementById('aiQuestionSelect');
+  sel.innerHTML = QUESTIONS.map(q=>`<option value="${q.id}">第 ${q.id} 題 — ${dimById(q.dim).name} (通過率 ${q.passRate}%)</option>`).join('');
+}
+
+function simulateMisconception() {
+  const qid = parseInt(document.getElementById('aiQuestionSelect').value);
+  const q = QUESTIONS.find(x=>x.id===qid);
+  if(!q) return;
+  const chat = document.getElementById('aiChat');
+  chat.innerHTML = `<em>AI 助教正在思考中...</em>`;
+
+  setTimeout(()=>{
+    const sims = {
+      1: '我看到「憎」和「僧」長得很像，想說讀音應該也一樣吧...而且選項A兩個字看起來差別只在部首，我以為「憎恨」和「僧侶」讀音相同。我不知道「僧」是ㄙㄥ、「憎」是ㄗㄥ。',
+      4: '「循規蹈矩」這個成語我沒聽過，所以我就選了「善解人意」，因為「安分守己」好像就是乖乖的、很善良的樣子...我沒有真正理解每個成語的準確意思。',
+      13: '這題我選A，因為「一家烤肉萬家香」感覺也很誇張啊！但我沒注意到題目問的是「沒有」運用誇飾，而且B選項「沒事多喝水，多喝水沒事」其實是「回文」，不是誇飾。我沒搞清楚修辭的定義。',
+      25: '我選了D「美麗的公園」，因為整篇文章都在講窗外有多美啊！靠窗的病人描述得好生動，我完全被他騙了。但最後一句明明寫了「只有一堵光禿禿的牆」...我讀到最後一段時已經忘記了。'
+    };
+    const sim = sims[qid] || `我看到這題時，想說「這個答案應該對吧」，因為我憑著之前的印象就選了。但後來發現我沒有仔細讀題目中的關鍵字，也沒回去文章中找證據。我習慣用「感覺」答題，而不是用「找證據」的方式。`;
+    chat.innerHTML = `<div style="background:#fff5f5;padding:12px;border-radius:8px;margin-bottom:8px;"><strong>學生思考路徑模擬：</strong></div><div>${sim}</div>`;
+  }, 1000);
+}
+
+function generateSimilarQuestion() {
+  const qid = parseInt(document.getElementById('aiQuestionSelect').value);
+  const q = QUESTIONS.find(x=>x.id===qid);
+  if(!q) return;
+  const chat = document.getElementById('aiChat');
+  chat.innerHTML = `<em>AI 助教正在思考中...</em>`;
+
+  setTimeout(()=>{
+    const d = dimById(q.dim);
+    const samples = {
+      'form_sound': '下列哪一個選項前後「」中的字讀音相同？\n①「漂」亮的衣服／隨風「飄」揚\n②「裁」剪布料／滿「載」而歸\n③山路「陡」峭／「徒」步旅行\n④「燥」熱天氣／焦「躁」不安\n\n（參考答案：④，兩字皆讀ㄗㄠˋ）',
+      'word_know': '下列哪一個選項和「鍥而不捨」的意思最接近？\n① 半途而廢\n② 持之以恆\n③ 見異思遷\n④ 敷衍了事\n\n（參考答案：②，皆表示堅持不懈）',
+      'rhetoric': '下列哪一個廣告標語運用了「誇飾」修辭？\n① 喝了這杯咖啡，精神百倍\n② 這支筆寫字超順，推薦給大家\n③ 我們的冰淇淋，好吃到連舌頭都要吞下去\n④ 新上市的飲料，請大家多多支持\n\n（參考答案：③）',
+      'passage_comp': '【閱讀題】小白兔對媽媽說：「為什麼我跑得這麼慢？」媽媽說：「你已經很快了。」小白兔不信。第二天，媽媽帶牠去看蝸牛賽跑。看完後，小白兔再也不抱怨了。\n\n這個故事主要告訴我們什麼？\n① 蝸牛跑得比兔子慢\n② 要懂得珍惜自己擁有的\n③ 媽媽說的話都是對的\n④ 不要和別人比較\n\n（參考答案：②）'
+    };
+    const sample = samples[q.dim] || `【${d.name} 類題】\n請根據以下文章回答問題...\n（此為範例類題，正式使用時會呼叫 AI API 生成針對性內容）`;
+    chat.innerHTML = `<div style="background:#f0f8f0;padding:12px;border-radius:8px;margin-bottom:8px;"><strong>AI 生成類題 — ${d.name}</strong></div><pre style="white-space:pre-wrap;font-family:inherit;font-size:0.9rem;">${sample}</pre>`;
+  }, 1500);
+}
+
+// ============== 初始化 ==============
+
+function initDimFilter() {
+  const sel = document.getElementById('dimFilter');
+  sel.innerHTML = '<option value="all">全部向度</option>' + DIMENSIONS.map(d=>`<option value="${d.id}">${d.name}</option>`).join('');
+  sel.addEventListener('change', ()=>{
+    currentDimFilter = sel.value;
+    renderQuestionTable();
+  });
+}
+
+function init() {
+  initOverview();
+  initDimensionTable();
+  renderQuestionTable();
+  initDimFilter();
+  initAISelect();
+
+  // Tab 切換
+  document.querySelectorAll('nav.tabs button').forEach(btn=>{
+    btn.addEventListener('click',()=>switchTab(btn.dataset.tab));
+  });
+
+  // 模式切換
+  document.querySelectorAll('.mode-switch button').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.mode-switch button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      currentSort = (currentMode==='support')?'cGroupGap':(currentMode==='advance')?'abGap':'passRate';
+      document.getElementById('sortBy').value = currentSort;
+      renderQuestionTable();
+    });
+  });
+
+  // 排序
+  document.getElementById('sortBy').addEventListener('change',(e)=>{
+    currentSort = e.target.value;
+    renderQuestionTable();
+  });
+
+  // Modal 關閉
+  document.getElementById('questionModal').addEventListener('click',(e)=>{
+    if(e.target===document.getElementById('questionModal')) closeModal();
+  });
+
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeModal(); });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
